@@ -1,5 +1,5 @@
 /*
- * Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -80,6 +80,8 @@ extern "C"
 
     /**
 * @brief Setup the server services by reading the GATT DB inited with \ref wiced_bt_gatt_db_init and \ref wiced_bt_gatt_add_services_to_db
+* @note The services/profiles to be supported have to be initialized and registered with gatt_interface prior to invoking this API.
+*
 * @param[in]  pfn_can_save : Application Callback. Invoked during function execution to check if the application is interested in the service UUID.
                              Application returns WICED_TRUE if interested in the service, WICED_FALSE otherwise
 * @param[in]  pfn_store    : Application Callback to store the service/service handle of type \ref gatt_intf_service_object_t found during the setup process
@@ -195,13 +197,15 @@ extern "C"
  *
  * @return wiced_bt_gatt_status_t
  * */
-    wiced_bt_gatt_status_t gatt_interface_characteristic_operation(uint16_t conn_id,
-                                                                   gatt_intf_service_object_t *p_service,
-                                                                   gatt_intf_operation_t operation,
-                                                                   on_gatt_interface_operation_complete_t pfn_op_cmpl);
 
-    // nvram
-    /**
+wiced_bt_gatt_status_t gatt_interface_characteristic_operation(uint16_t conn_id,
+                                                               gatt_intf_service_object_t *p_service,
+                                                               gatt_intf_operation_t operation,
+                                                               on_gatt_interface_operation_complete_t pfn_op_cmpl);
+
+
+// nvram
+/**
  * @brief Funtion to write characteristic data to nvram. Function writes both client and server
  *        related information for the device with \p bdaddr
  *
@@ -214,11 +218,11 @@ extern "C"
  * @note A positive return value indicates a successful write. A negative value indicates failure.
  *
  * */
-    int gatt_interface_nvram_write(wiced_bt_device_address_t bdaddr,
+int gatt_interface_nvram_write(wiced_bt_device_address_t bdaddr,
                                    const gatt_interface_nvram_data_t *p_nv,
                                    int device_nvram_id);
 
-    /**
+/**
  * @brief Funtion to read characteristic data from nvram. Function reads both client and server
  *        related information for the device with \p bdaddr
  *
@@ -231,7 +235,7 @@ extern "C"
  * @note A positive return value indicates a successful read. A negative value indicates failure.
  *
  * */
-    int gatt_interface_nvram_read(wiced_bt_device_address_t bda,
+int gatt_interface_nvram_read(wiced_bt_device_address_t bda,
                                   const gatt_interface_nvram_data_t *p_nv,
                                   int device_nvram_id,
                                   void *p_app_ctx);
@@ -242,23 +246,23 @@ extern "C"
  * @param bdaddr : Bluetooth device address
  *
 */
-    void gatt_interface_free_client_device_ctx(wiced_bt_device_address_t bdaddr);
+void gatt_interface_free_client_device_ctx(wiced_bt_device_address_t bdaddr);
 
-    // Utility functions
-    /**
+// Utility functions
+/**
  * @brief Function to print the linked handles
  * @param bdaddr : Bluetooth device address
 */
-    void gatt_interface_print_linked_handles(wiced_bt_device_address_t bdaddr);
+void gatt_interface_print_linked_handles(wiced_bt_device_address_t bdaddr);
 
-    /**
+/**
  * @brief Function to get the service object with a bluetooth address, use NULL for local device service
  * @param bdaddr : Bluetooth device address
  * @param p_uuid : UUID of service
  *
  * @return valid service object or NULL
 */
-    gatt_intf_service_object_t *gatt_interface_get_service_by_uuid(wiced_bt_device_address_t bdaddr,
+gatt_intf_service_object_t *gatt_interface_get_service_by_uuid(wiced_bt_device_address_t bdaddr,
                                                                    const wiced_bt_uuid_t *p_uuid);
 
     /**
@@ -269,7 +273,7 @@ extern "C"
  * @return valid service object or NULL
 */
 
-    gatt_intf_service_object_t *gatt_interface_get_service_by_uuid_and_conn_id(uint16_t conn_id,
+gatt_intf_service_object_t *gatt_interface_get_service_by_uuid_and_conn_id(uint16_t conn_id,
                                                                                const wiced_bt_uuid_t *p_uuid);
 
     /**
@@ -278,7 +282,7 @@ extern "C"
  * @param index  : Index to get
  * @return gatt_intf_service_object_t *
 */
-    gatt_intf_service_object_t *gatt_interface_get_linked_client_profile_at(wiced_bt_device_address_t bdaddr,
+gatt_intf_service_object_t *gatt_interface_get_linked_client_profile_at(wiced_bt_device_address_t bdaddr,
                                                                             int index);
 
     /**
@@ -287,17 +291,18 @@ extern "C"
  * @param index  : Index to get
  * @return gatt_intf_service_object_t *
 */
-    gatt_intf_service_object_t *gatt_interface_get_linked_server_profile_at(int index);
+gatt_intf_service_object_t *gatt_interface_get_linked_server_profile_at(int index);
 
-    /**
+/**
  * @brief Function to get the next service from the list attached \p p_service
  * @param p_service  : Current service object
  * @return a valid (non NULL) gatt_intf_service_object_t * or NULL (no more services)
 */
-    gatt_intf_service_object_t *gatt_interface_get_next_linked_profile(gatt_intf_service_object_t *p_service);
 
-#define GATT_INTERFACE_TRACE(...)
-#define GATT_INTERFACE_TRACE_CRIT(...)
+gatt_intf_service_object_t *gatt_interface_get_next_linked_profile(gatt_intf_service_object_t *p_service);
+
+#define GATT_INTERFACE_TRACE(...) WICED_BT_TRACE(__VA_ARGS__)
+#define GATT_INTERFACE_TRACE_CRIT(...) WICED_BT_TRACE_CRIT(__VA_ARGS__)
 
 #ifdef __cplusplus
 }

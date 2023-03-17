@@ -1,5 +1,5 @@
 /*
- * Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -38,9 +38,9 @@
   * Definitions for interface between BT stack GATT and service/application. The GATT interface is responsible for
   * routing the incoming GATT commands to the appropriate service/services or application.
   * GATT Interface library helps applications to
-  *  1. Discover remote services, included services, characteristics, descriptors and map them to the 
+  *  1. Discover remote services, included services, characteristics, descriptors and map them to the
   *     registered service implementations
-  *  2. Setup local services, included services, characteristics, descriptors and map them to the 
+  *  2. Setup local services, included services, characteristics, descriptors and map them to the
   *     registered service implementations
   *  3. Perform basic operations viz, notifying remote clients, setting up notifications, reading characteristics
   *  4. Organise non volatile data for storing and reading back from NVRAM
@@ -59,7 +59,7 @@ extern "C"
 
 /**
  * @brief Utility function creates instances of type \ref gatt_intf_service_object_t for the service
- *        Number_of_instances created = \p num_instances (for local server) + 
+ *        Number_of_instances created = \p num_instances (for local server) +
  *              (\p num_instances * max_connections (in \ref gatt_interface_init) (for remote clients)
  *        Total memory required = Number_of_instances * \p object_instance_size  + (internal header)
  *
@@ -129,7 +129,7 @@ void gatt_intf_method_print_handles(gatt_intf_service_object_t *p_service);
  * @param p_service : GATT Profile Instance
  * @param bdaddr: Bluetooth device adddress
  * @param characteristic_type : The characteristic type to write the data to
- * @param p_data : The stored data from NVRAM 
+ * @param p_data : The stored data from NVRAM
  * @param len : The length of the data pointed by p_data
  * @return : The number of bytes read from \p p_data
 */
@@ -155,7 +155,7 @@ int gatt_intf_method_write_server_characteristics_to_nvram(gatt_intf_service_obj
  * @brief Utility function to get the characteristic type from handle
  * @param p_handles : Array of Handles
  * @param max : Size of array pointed by \ref p_pandles
- * @param handle : Handle to search 
+ * @param handle : Handle to search
  * @param p_type_uuid : Returns the UUID, can be either \ref GATT_UUID_CHAR_DECLARE or \ref GATT_UUID_CHAR_CLIENT_CONFIG
  * @return The characteristic_type of the \p handle, -1 on error
 */
@@ -258,7 +258,7 @@ wiced_bt_gatt_status_t gatt_intf_method_send_notification( uint16_t conn_id,
  *
  * Function     gatt_intf_method_send_write_response
  *
- *              Sends back the response to a write req 
+ *              Sends back the response to a write req
  *
  *  @param[in]  p_char     : characteristic handle to respond
  *  @param[in]  conn_id    : GATT connection id
@@ -282,10 +282,10 @@ typedef uint16_t subscription_enums_t;
  *
  * Function     gatt_intf_method_get_subscription_value_conn_id
  *
- *              Sends back the response to a write req 
+ *              Sends back the response to a write req
  *
  *  @param[in]  conn_id    : GATT connection id
- *  @param[in]  p_handle   : characteristic handle 
+ *  @param[in]  p_handle   : characteristic handle
  *
  *  @return @link value of the subscription @endlink
  */
@@ -295,10 +295,10 @@ int gatt_intf_method_get_subscription_value_conn_id(uint16_t conn_id,
 /**
  * Function     gatt_intf_method_get_subscription_value_conn_id
  *
- *              Sends back the response to a write req 
+ *              Sends back the response to a write req
  *
  *  @param[in]  conn_id    : GATT connection id
- *  @param[in]  p_handle   : characteristic handle 
+ *  @param[in]  p_handle   : characteristic handle
  *  @param[in]  value      : subscription value
  *
  *  @return @link value of the subscription @endlink
@@ -321,11 +321,11 @@ uint8_t *gatt_intf_method_get_buffer(int len);
 
 /**
  * Function     gatt_intf_method_alloc_server_notification_packet
- * 
+ *
  *              Free buffer allocated with \ref gatt_intf_method_get_buffer
  *
  *  @param[in]  conn_id    : GATT connection id
- *  @param[in]  p_handle   : characteristic handle 
+ *  @param[in]  p_handle   : characteristic handle
  *  @param[in]  type       : Notification or Indication
  *  @param[in]  req_len    : Requested buffer len
  *  @return @link buffer allocated @endlink
@@ -339,7 +339,7 @@ uint8_t *gatt_intf_method_alloc_server_notification_packet(uint16_t conn_id,
  * Function     gatt_intf_method_free_buffer
  *
  *              Free buffer allocated with \ref gatt_intf_method_get_buffer or \ref gatt_intf_method_alloc_server_notification_packet
- * 
+ *
  *
  *  @param[in]  len : length of the buffer
  *

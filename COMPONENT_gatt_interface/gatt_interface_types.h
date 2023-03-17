@@ -1,5 +1,5 @@
 /*
- * Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -63,7 +63,14 @@ typedef enum {
     READ_CMPL_EVT,     /**< Read complete event */
     WRITE_CMPL_EVT,    /**< Write complete event */
     NOTIFICATION_EVT,  /**< Notification event */
-    INDICATION_EVT     /**< Indication event */
+    INDICATION_EVT,    /**< Indication event */
+    READ_BLOB_REQ_EVT  /**< Read request blob event, indicates long read
+                        * using a flag "is_long_read". Check
+                        * \ref _gatt_intf_included_service_cfg_t.read_local_attribute
+                        * Event is expected to be handled similar to \ref READ_REQ_EVT
+                        * Event is expected to return an error in case the handler
+                        * detects a change in value during a long read initiated by the client
+                        */
 }gatt_interface_events_t;
 
 typedef enum {
@@ -84,7 +91,8 @@ typedef struct gatt_intf_device_ctx_t_ gatt_intf_device_ctx_t;
 /**
  * @brief Structure describes an attribute of the GATT Database
 */
-typedef struct {
+typedef struct
+{
     uint32_t included_service_type : 3;       /**< Included service type, valid if not 0 */
     uint32_t included_service_instance : 4;   /**< Instance of the included type indicated by the included_service_type member of this structure*/
 
@@ -93,6 +101,15 @@ typedef struct {
                                                    Enumeration defined by the specific service implementations */
     uint32_t characteristic_instance : 4;     /**< Instance of the characteristic type, indicated by the characteristic member of this structure  */
 }gatt_intf_attribute_t;
+
+/**
+ * @brief String data structure
+*/
+typedef struct
+{
+    char *str; /**< pointer to string */
+    uint32_t len; /**< string length */
+} gatt_intf_string_t;
 
 /**
  * GATT interface event notification callback
@@ -166,9 +183,9 @@ typedef struct {
 */
 typedef struct _gatt_intf_included_service_cfg_t {
     /**
-     * @brief Reference to the \ref gatt_intf_service_methods_t of the included service 
+     * @brief Reference to the \ref gatt_intf_service_methods_t of the included service
     */
-    const gatt_intf_service_methods_t *p_methods; 
+    const gatt_intf_service_methods_t *p_methods;
     /**
      * @brief Gets the included service instance of the parent service \p p_parent at index \p num
      * @param p_parent : Parent service
@@ -258,11 +275,11 @@ struct gatt_intf_service_methods_t_ {
     /**
      * @brief Function to set the characteristic data received during the GATT service discovery
      * @param p_service : GATT Profile Instance
-     * @param p_result  : Characteristic discovery data \ref wiced_bt_gatt_char_declaration_t for the characteristic received 
+     * @param p_result  : Characteristic discovery data \ref wiced_bt_gatt_char_declaration_t for the characteristic received
      *                    during the discovery procedure
      * @param p_cc      : Characteristic type info of which the \p p_result was received
     */
-    void (*set_characteristic_data)(gatt_intf_service_object_t *p_service, 
+    void (*set_characteristic_data)(gatt_intf_service_object_t *p_service,
         wiced_bt_gatt_char_declaration_t *p_result, const gatt_intf_characteristic_info_t *p_cc);
     /**
      * @brief Function to set the descriptor data received during the GATT service discovery
@@ -270,27 +287,40 @@ struct gatt_intf_service_methods_t_ {
      *
      * @param p_service : GATT Profile Instance
      * @param char_handle: Current characteristic handle to be associated with descriptor in \p p_result
-     * @param p_result  : Descriptor discovery data \ref wiced_bt_gatt_char_descr_info_t for the descriptor 
+     * @param p_result  : Descriptor discovery data \ref wiced_bt_gatt_char_descr_info_t for the descriptor
      *                    received during the discovery procedure
     */
-    void (*set_descriptor_data)(gatt_intf_service_object_t *p_service, 
+    void (*set_descriptor_data)(gatt_intf_service_object_t *p_service,
         uint16_t char_handle, const wiced_bt_gatt_char_descr_info_t *p_result);
 
     /**
-     * @brief Function to handle GATT events received by the GATT server/client
+     * @brief Function to handle GATT read events received by the GATT server
+     * This callback will be invoked by the GATT Interface on receiving \ref GATT_REQ_READ,
+     * \ref GATT_REQ_READ_BLOB, \ref GATT_REQ_READ_MULTI, \ref GATT_REQ_MULTI_VAR_LENGTH from the remote client
+     * It may also be invoked when the server initiates sending notifications.
+     * In all cases the function implementation is expected to return the entire attribute value in \p p_attr and
+     * update the attribute length in \p p_attr_len
+     *
      * @param p_service : GATT Profile Instance
      * @param conn_id : GATT connection id
      * @param attr_handle : Attribute handle to read
-     * @param len_to_read : Length to read 
+     * @param is_long_read : In case \p is_long_read is not zero, and the value of attribute being read
+     *      was updated then profile is expected to send an error response.
+     * @note During long read on an attribute it is possible that the value of the attribute is updated while it is
+     *       being read by a client/s. In such cases the profile/application is expected to return an error based on
+     *       the profile/service specification.
+     * @param len_to_read : Length to read
      * @param p_attr_len : Pointer to hold the actual attribute length read
      * @param p_attr : Pointer which holds the attribute data
      * @return wiced_bt_gatt_status_t
     */
-    wiced_bt_gatt_status_t(*read_attribute)(gatt_intf_service_object_t *p_service, uint16_t conn_id,
-        uint16_t attr_handle, uint16_t len_to_read, int *p_attr_len, uint8_t *p_attr);
+    wiced_bt_gatt_status_t(*read_local_attribute)(gatt_intf_service_object_t *p_service, uint16_t conn_id,
+        uint16_t attr_handle, uint16_t is_long_read, uint16_t len_to_read, int *p_attr_len, uint8_t *p_attr);
 
     /**
-     * @brief Function to handle GATT events received by the GATT server/client
+     * @brief Function to handle GATT write events received by the GATT server
+     * This callback will be invoked by the GATT Interface on receiving \ref GATT_REQ_WRITE,
+     * \ref GATT_CMD_WRITE, \ref GATT_CMD_SIGNED_WRITE and on execution of \ref GATT_REQ_EXECUTE_WRITE from the remote client
      * @param p_service : GATT Profile Instance
      * @param conn_id : GATT connection id
      * @param attr_handle : Attribute handle to write
@@ -298,9 +328,20 @@ struct gatt_intf_service_methods_t_ {
      * @param p_attr : Pointer to the attribute data
      * @return wiced_bt_gatt_status_t
     */
-    wiced_bt_gatt_status_t(*write_attribute)(gatt_intf_service_object_t *p_service, uint16_t conn_id,
+    wiced_bt_gatt_status_t(*write_local_attribute)(gatt_intf_service_object_t *p_service, uint16_t conn_id,
         uint16_t attr_handle, uint16_t len_to_write, uint8_t *p_attr);
 
+    /**
+     * @brief Function to handle GATT operation complete for operations started by the local client
+     * This callback will be invoked by the GATT Interface on completion of a GATT read, write, discover operation
+     *
+     * @param p_service : GATT Profile Instance
+     * @param conn_id : GATT connection id
+     * @param attr_handle : Attribute handle to write
+     * @param len_to_write : Length to write
+     * @param p_attr : Pointer to the attribute data
+     * @return wiced_bt_gatt_status_t
+    */
     wiced_bt_gatt_status_t(*operation_complete)(gatt_intf_service_object_t *p_service, wiced_bt_gatt_operation_complete_t *p_cmpl);
 
     // iteration functions
@@ -336,7 +377,8 @@ struct gatt_intf_service_methods_t_ {
 
     /**
      * @brief Function to read the peer db handles/characteristic data to buffer
-     * @note: Calling the function with \p p_data set to NULL, does a dry run of the contents to be written and returns the maximum size of data to be written into \p p_data
+     * @note: Calling the function with \p p_data set to NULL, does a dry run of the contents to be written and
+     * returns the maximum size of data to be written into \p p_data
      *
      * @param p_service : GATT Profile Instance
      * @param p_data : Data buffer to store the handle/characteristic information.
@@ -347,7 +389,8 @@ struct gatt_intf_service_methods_t_ {
 
     /**
      * @brief Function to read the server side (descriptor/characteristic) data to buffer
-     * @note: Calling the function with \p p_data set to NULL, does a dry run of the contents to be written and returns the maximum size of data to be written into \p p_data
+     * @note: Calling the function with \p p_data set to NULL, does a dry run of the contents to be written and
+     * returns the maximum size of data to be written into \p p_data
      *
      * @param p_service : GATT Profile Instance
      * @param bdaddr : Address of the remote Bluetooth device connected to this server
@@ -359,34 +402,38 @@ struct gatt_intf_service_methods_t_ {
 
     /**
      * @brief Function to request to read the remote server characteristic data
+     * @param conn_id : GATT Connection identifier
+     * @param p_service: GATT Profile Instance
+     * @param p_char : Attribute to be read
      */
-    wiced_bt_gatt_status_t (*read_characteristic)(uint16_t conn_id,
+    wiced_bt_gatt_status_t (*read_remote_attribute)(uint16_t conn_id,
                                                   gatt_intf_service_object_t *p_service,
                                                   gatt_intf_attribute_t *p_char);
 
     /**
      * @brief Function to request to write data to the remote server characteristic
+     * @param conn_id : GATT Connection identifier
+     * @param p_service: GATT Profile Instance
+     * @param p_char : Attribute to be written
+     * @param p_write_data: Pointer to data structure defined by the specific profile/service
      */
-    wiced_bt_gatt_status_t (*write_characteristic)(uint16_t conn_id,
-                                                   gatt_intf_service_object_t *p_service,
-                                                   gatt_intf_attribute_t *p_char,
-                                                   void *p_write_data);
+    wiced_bt_gatt_status_t (*write_remote_attribute)(uint16_t conn_id,
+                                                     gatt_intf_service_object_t *p_service,
+                                                     gatt_intf_attribute_t *p_char,
+                                                     void *p_write_data);
 
     /**
      * @brief Function to request to send a notification to the remote server characteristic
+     * @param conn_id : GATT Connection identifier
+     * @param p_service: GATT Profile Instance
+     * @param p_char : Attribute to be written
+     * @param p_notification: Pointer to data structure defined by the specific profile/service
      */
-    wiced_bt_gatt_status_t (*notify_characteristic)(uint16_t conn_id,
-                                                    gatt_intf_service_object_t *p_service,
-                                                    gatt_intf_attribute_t *p_char,
-                                                    void *p_notification);
+    wiced_bt_gatt_status_t (*notify_to_remote)(uint16_t conn_id,
+                                               gatt_intf_service_object_t *p_service,
+                                               gatt_intf_attribute_t *p_char,
+                                               void *p_notification);
 
-    /**
-     * @brief Function to request to enable notifications to the remote server characteristic
-     */
-    wiced_bt_gatt_status_t (*enable_notifications)(uint16_t conn_id,
-                                                   gatt_intf_service_object_t *p_service,
-                                                   gatt_intf_attribute_t *p_char,
-                                                   uint16_t value);
 };
 
 
@@ -409,7 +456,7 @@ typedef void (*fn_on_service_handle_store)(void *p_app_ctx, wiced_bt_uuid_t *p_u
 /**
 * @brief Callback function to application to allow it to store the allocated service reference
 * @param p_app_ctx : Application context to the callback function
-* @param conn_id : Connection Id 
+* @param conn_id : Connection Id
 */
 typedef void(*fn_on_discovery_complete)(uint16_t conn_id);
 
@@ -423,11 +470,11 @@ enum gatt_intf_operation_e
 typedef uint8_t gatt_intf_operation_t; /**< \ref gatt_intf_operation_e */
 
 /**
- * @brief Callback function to indicate operation complete 
+ * @brief Callback function to indicate operation complete
  *
  * @param conn_id : GATT connection Id
  * @param p_service : GATT Profile Instance
- * @param operation : Operation type 
+ * @param operation : Operation type
  * @param status : Status of the operation
  *
  * @return void
@@ -441,34 +488,34 @@ typedef void (*on_gatt_interface_operation_complete_t)(uint16_t conn_id,
 /**
  * @brief Function to write data to nvram at nvram_id
  *
- * @param nvram_id : NVRAM Identifier 
- * @param bdaddr : Address of the remote Bluetooth device 
+ * @param nvram_id : NVRAM Identifier
+ * @param bdaddr : Address of the remote Bluetooth device
  * @param p_data : Data to be written to NVRAM
- * @param len : Length to be written to NVRAM 
+ * @param len : Length to be written to NVRAM
  *
- * @return uint32_t Length written to NVRAM 
+ * @return uint32_t Length written to NVRAM
  * */
 typedef uint32_t (*fn_write_to_nvram)(int nvram_id, wiced_bt_device_address_t bdaddr, uint8_t *p_data, uint32_t len);
 
 /**
- * @brief Function to read data from nvram at nvram_id 
+ * @brief Function to read data from nvram at nvram_id
  *
- * @param nvram_id : NVRAM Identifier 
- * @param bdaddr : Address of the remote Bluetooth device 
+ * @param nvram_id : NVRAM Identifier
+ * @param bdaddr : Address of the remote Bluetooth device
  * @param p_data : Data pointer to read data from NVRAM
  * @param len : Length of buffer pointed by \p p_data
  *
- * @return uint32_t Actual length read from NVRAM 
+ * @return uint32_t Actual length read from NVRAM
  * */
 typedef uint32_t (*fn_read_from_nvram)(int nvram_id, wiced_bt_device_address_t bdaddr, uint8_t *p_data, uint32_t len);
 
 /**
- * @brief Function to delete data from nvram at nvram_id 
+ * @brief Function to delete data from nvram at nvram_id
  *
- * @param nvram_id : NVRAM Identifier 
- * @param bdaddr : Address of the remote Bluetooth device 
+ * @param nvram_id : NVRAM Identifier
+ * @param bdaddr : Address of the remote Bluetooth device
  *
- * @return void 
+ * @return void
  * */
 typedef void (*fn_delete_nvram_id)(int nvram_id, wiced_bt_device_address_t bdaddr);
 
